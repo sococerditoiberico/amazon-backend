@@ -1,40 +1,39 @@
-from fastapi import FastAPI, Depends
-from sqlmodel import SQLModel, select, Session
-from database import engine, get_session
+from fastapi import FastAPI
 from models import Product
+from database import engine, SessionLocal
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends
+from sqlalchemy.orm import Session
 
 app = FastAPI()
 
-# Crear tablas al iniciar
-@app.on_event("startup")
-def on_startup():
-    SQLModel.metadata.create_all(engine)
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/")
-def root():
-    return {"status": "API OK"}
+def home():
+    return {"message": "API funcionando correctamente"}
 
 @app.post("/products")
-def create_product(product: Product, session: Session = Depends(get_session)):
-    session.add(product)
-    session.commit()
-    session.refresh(product)
-    
-    # Genera URL pública para tu web
-    product_link = f"https://TU_WEB.vercel.app/product/{product.id}"
-    
+def create_product(product: Product, db: Session = Depends(get_db)):
+    new_product = product.to_model()
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
     return {
-        "ok": True,
-        "product_id": product.id,
-        "product_page": product_link
+        "product_page": f"https://TU-DOMINIO/product/{new_product.id}"
     }
-
-@app.get("/products/{product_id}")
-def get_product(product_id: int, session: Session = Depends(get_session)):
-    statement = select(Product).where(Product.id == product_id)
-    result = session.exec(statement).first()
-    
-    if not result:
-        return {"error": "Producto no encontrado"}
-    
-    return result
