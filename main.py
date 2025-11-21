@@ -1,3 +1,5 @@
+# update
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -45,3 +47,4 @@ def create_product(product: Product, db: Session = Depends(get_db)):
     return {
         "product_page": f"{backend_url}/product/{new_product.id}"
     }
+
