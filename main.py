@@ -1,12 +1,16 @@
-from fastapi import FastAPI
-from models import Product
-from database import engine, SessionLocal
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Depends
 from sqlalchemy.orm import Session
+
+from models import Product, ProductModel
+from database import Base, engine, SessionLocal
+
+# Crear tablas SIN import circular
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# CORS
 origins = ["*"]
 
 app.add_middleware(
@@ -17,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# DB dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -34,6 +39,9 @@ def create_product(product: Product, db: Session = Depends(get_db)):
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
+
+    backend_url = "https://amazon-backend-47xw.onrender.com"
+
     return {
-        "product_page": f"https://TU-DOMINIO/product/{new_product.id}"
+        "product_page": f"{backend_url}/product/{new_product.id}"
     }
